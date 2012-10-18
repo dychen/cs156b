@@ -8,7 +8,8 @@ input_vector = []
 output_vector = []
 
 num_iter = 0
-LIMIT = 1000
+LIMIT = 100000
+SPLIT_SIZE = 100
 
 start_time = time.time()
 for line in f_learn:
@@ -36,9 +37,11 @@ target_output_vector = []
 for line in f_predict:
     uid, mid, date = line.strip().split()
     target_input_vector.append([int(uid), int(mid)])
-target_output_vector = clf.predict(target_input_vector)
-for predicted_rating in target_output_vector:
-    f_predict_out.write(str(predicted_rating) + '\n')
+for n in range(SPLIT_SIZE):
+    target_output_vector = clf.predict(target_input_vector[int(n/float(SPLIT_SIZE)*len(target_input_vector)):int(n+1)/float(SPLIT_SIZE)*len(target_input_vector))])
+    for predicted_rating in target_output_vector:
+        f_predict_out.write(str(predicted_rating) + '\n')
+    print "Predictions %.1f%% done." % (n/float(SPLIT_SIZE)*len(target_input_vector))
 print "Predict time: %s s." % (time.time() - start_time)
 f_predict.close()
 f_predict_out.close()
