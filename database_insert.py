@@ -16,8 +16,9 @@ def insert_data_table(cursor):
         user_id, movie_id, date, rating = line.split()
         insert_values.append("(%s, %s, %s, %s)" % (user_id, movie_id, date, rating))
         i += 1
-        if i % 10000 == 0 and i != 0:
+        if i % 1000000 == 0 and i != 0:
             cursor.execute(sql_cmd + ','.join(insert_values))
+            connection.commit()
             insert_values = []
             print i
     cursor.execute(sql_cmd + ','.join(insert_values))
