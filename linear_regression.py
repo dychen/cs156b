@@ -1,4 +1,4 @@
-from sklearn import svm
+from sklearn import linear_model
 import time
 
 # Learn #
@@ -8,7 +8,7 @@ input_vector = []
 output_vector = []
 
 num_iter = 0
-LIMIT = 1000
+LIMIT = 10000000
 
 start_time = time.time()
 for line in f_learn:
@@ -22,7 +22,7 @@ print "Read input time: %s s." % (time.time() - start_time)
 f_learn.close()
 
 start_time = time.time()
-clf = svm.SVC()
+clf = linear_model.LinearRegression()
 clf.fit(input_vector, output_vector)
 print "Learn time: %s s." % (time.time() - start_time)
 
@@ -43,7 +43,7 @@ print "Predict time: %s s." % (time.time() - start_time)
 f_predict.close()
 f_predict_out.close()
 
-# For LIMIT = 100000 data points:
-# Read input time: 0.196299791336 s.
-# Learn time: 1528.42140293 s.
-# Predict time: 8086.82230496 s.
+# For LIMIT = 1000000 data points:
+# Read input time: 5.19124603271 s.
+# Learn time: 4.09771299362 s.
+# Predict time: 52.6327300072 s.
