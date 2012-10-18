@@ -8,13 +8,13 @@ input_vector = []
 output_vector = []
 
 num_iter = 0
-LIMIT = 100000
+LIMIT = 1000
 
 start_time = time.time()
 for line in f_learn:
     uid, mid, date, rating = line.strip().split()
-    input_vector.append([uid, mid])
-    output_vector.append(rating)
+    input_vector.append([int(uid), int(mid)])
+    output_vector.append(int(rating))
     num_iter += 1
     if num_iter >= LIMIT:
         break
@@ -28,12 +28,17 @@ print "Learn time: %s s." % (time.time() - start_time)
 
 
 # Predict #
-f_predict = open("qual.dta", 'r')
+f_predict = open("qual_mu.dta", 'r')
 f_predict_out = open("submission2.dta", 'w')
 start_time = time.time()
+target_input_vector = []
+target_output_vector = []
 for line in f_predict:
-    uid_mid = line.strip().split()[:2]
-    f_predict_out.write(str(clf.predict(uid_mid)[0]) + '\n')
+    uid, mid, date = line.strip().split()
+    target_input_vector.append([int(uid), int(mid)])
+target_output_vector = clf.predict(target_input_vector)
+for predicted_rating in target_output_vector:
+    f_predict_out.write(str(predicted_rating) + '\n')
 print "Predict time: %s s." % (time.time() - start_time)
 f_predict.close()
 f_predict_out.close()
