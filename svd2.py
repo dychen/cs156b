@@ -1,11 +1,11 @@
 # Dependencies:
-# sudo pip install numpy scipy divisi2 csc-pysparse
+# sudo pip install numpy scipy sparsesvd
 
 import os, sys
 import time
 # from multiprocessing import Process, Queue
-import divisi2
-from divisi2.sparse import SparseMatrix
+import numpy, scipy.sparse
+from sparsesvd import sparsesvd
 
 # 458293 users
 # 17700  movies
@@ -20,7 +20,7 @@ NUM_USERS = 458293
 NUM_MOVIES = 17770
 NUM_TRAINING = 102416306
 NUM_TESTING = 2749898
-NUM_COMPONENTS = 2
+NUM_COMPONENTS = 100
 INCR = 1000
 NUM_LEARN_ITER = 100
 
@@ -44,20 +44,17 @@ def add_data_to_matrix(mat):
 def learn(mat):
     print "Starting learning process..."
     start_time = time.time()
-    user_mat, axis_weights, movie_mat = mat.svd(k=NUM_COMPONENTS)
+    user_mat, axis_weights, movie_mat = sparsesvd(mat, NUM_COMPONENTS)
     print "Matrix decomposition complete (elapsed time: %f s)." % (time.time() - start_time)
-    start_time = time.time()
-    predictions = divisi2.reconstruct(user_mat, axis_weights, movie_mat)
-    print "Matrix reconstruction (elapsed time: %f s)." % (time.time() - start_time)
     print "Learning process complete."
-    return predictions
+    return (user_mat, axis_weights, movie_mat)
 
 def learn_iter(mat):
     for i in range(NUM_LEARN_ITER):
         mat = learn(mat)
     return mat
 
-def predict(mat):
+def predict(users_mat, movies_mat):
     f_testing = open(TESTING_FILENAME, 'r')
     f_out = open(OUTPUT_FILENAME, 'w')
     print "Making %d predictions..." % NUM_TESTING
@@ -66,7 +63,8 @@ def predict(mat):
     j = 0
     for line in f_testing:
         user, movie, date = line.strip().split()
-        f_out.write(str(mat.entry_named(int(user), int(movie))) + '\n')
+        predicted_rating = numpy.dot(users_mat[:,int(user)-1], movies_mat[:,int(movie)-1])
+        f_out.write(str(predicted_rating) + '\n')
         i += 1
         if i % (NUM_TESTING / INCR) == 0:
             j += 100.0 / INCR
@@ -77,7 +75,8 @@ def predict(mat):
     f_out.close()
 
 if __name__=='__main__':
-    training_mat = SparseMatrix((NUM_USERS, NUM_MOVIES), range(1,NUM_USERS+1), range(1,NUM_MOVIES+1))
+    training_mat = scipy.sparse.lil_matrix((NUM_USERS, NUM_MOVIES))
     add_data_to_matrix(training_mat)
-    predictions = learn_iter(training_mat)
-    predict(predictions)
+    training_smat = scipy.sparse.csc_matrix(training_mat)
+    (user_mat, axis_weights, movie_mat) = learn_iter(training_smat)
+    predict(user_mat, movie_mat)
