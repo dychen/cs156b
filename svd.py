@@ -20,9 +20,9 @@ NUM_USERS = 458293
 NUM_MOVIES = 17770
 NUM_TRAINING = 102416306
 NUM_TESTING = 2749898
-NUM_COMPONENTS = 2
+NUM_COMPONENTS = 40
 INCR = 1000
-NUM_LEARN_ITER = 100
+NUM_LEARN_ITER = 10
 
 def add_data_to_matrix(mat):
     f_training = open(TRAINING_FILENAME, 'r')
@@ -38,24 +38,30 @@ def add_data_to_matrix(mat):
             j += 100.0 / INCR
             sys.stdout.write("\r%.1f%% done, %d ratings inserted (elapsed time: %f s)." % (j, i, time.time() - start_time))
             sys.stdout.flush()
+        if i == 100000:
+            break
     print "Data loaded."
     f_training.close()
 
 def learn(mat):
-    print "Starting learning process..."
     start_time = time.time()
     user_mat, axis_weights, movie_mat = mat.svd(k=NUM_COMPONENTS)
     print "Matrix decomposition complete (elapsed time: %f s)." % (time.time() - start_time)
-    start_time = time.time()
-    predictions = divisi2.reconstruct(user_mat, axis_weights, movie_mat)
-    print "Matrix reconstruction (elapsed time: %f s)." % (time.time() - start_time)
-    print "Learning process complete."
-    return predictions
+    return (user_mat, axis_weights, movie_mat)
 
 def learn_iter(mat):
+    print "Starting learning process..."
     for i in range(NUM_LEARN_ITER):
-        mat = learn(mat)
-    return mat
+        user_mat, axis_weights, movie_mat = learn(mat)
+        # Reconstruct the learning matrix here.
+        for j in range(NUM_USERS):
+            for k in range(NUM_MOVIES):
+                mat[j, k] = divisi2.dot(user_mat[i,:], movie_mat[j,:])
+    print "Learning process complete."
+    start_time = time.time()
+    predictions = divisi2.reconstruct(user_mat, axis_weights, movie_mat)
+    print "Matrix reconstruction (elapsed time: %f s)." % (time.time() - start_time)    
+    return predictions
 
 def predict(mat):
     f_testing = open(TESTING_FILENAME, 'r')

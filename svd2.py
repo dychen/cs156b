@@ -54,7 +54,7 @@ def learn_iter(mat):
         mat = learn(mat)
     return mat
 
-def predict(users_mat, movies_mat):
+def predict(user_mat, movie_mat):
     f_testing = open(TESTING_FILENAME, 'r')
     f_out = open(OUTPUT_FILENAME, 'w')
     print "Making %d predictions..." % NUM_TESTING
@@ -63,7 +63,7 @@ def predict(users_mat, movies_mat):
     j = 0
     for line in f_testing:
         user, movie, date = line.strip().split()
-        predicted_rating = numpy.dot(users_mat[:,int(user)-1], movies_mat[:,int(movie)-1])
+        predicted_rating = numpy.dot(user_mat[:,int(user)-1], movie_mat[:,int(movie)-1])
         f_out.write(str(predicted_rating) + '\n')
         i += 1
         if i % (NUM_TESTING / INCR) == 0:
