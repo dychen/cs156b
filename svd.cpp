@@ -3,14 +3,17 @@
 #include <stdlib.h>
 using namespace std;
 
-#define TRAINING_FILE "all_um.dta"
+//#define TRAINING_FILE "all_um.dta"
+#define TRAINING_FILE "/Users/epelz/cs156b_data/um/all.dta"
+#define QUAL_FILE "/Users/epelz/cs156b_data/um/qual.dta"
 #define NUM_USERS 458293
 #define NUM_MOVIES 17770
 #define NUM_TRAINING 102416306
 #define NUM_TESTING 2749898
 #define NUM_COMPONENTS 40
-#define L_RATE 0.01
+#define L_RATE 0.001
 #define ERR_MARGIN L_RATE * 0.1
+#define MAX_NUM_EPOCH 100
 
 double ** open_training_file() {
     int i = 0;
@@ -96,15 +99,23 @@ void train(double ** training_pointers, double ** feature_pointers) {
         user = training_users[i];
         movie = training_movies[i];
         rating = training_ratings[i];
+
+        // print progress every so often
+        if (i % 1000 == 0) {
+            cout << '\r' << "(user, movie, rating) = (" << user << ", " << movie << ", " << rating << ")";
+        }
+
         // Train all features
         for (j = 0; j < NUM_COMPONENTS; j++) {
             //cout << user << endl;
             //cout << movie << endl;
             //cout << rating << endl;
             err = 1.0;
-            while (err > ERR_MARGIN || err < -ERR_MARGIN) {
+            int cnt = 0;
+            while ((err > ERR_MARGIN || err < -ERR_MARGIN) && cnt < MAX_NUM_EPOCH) {
+                cnt += 1;
                 // Calculate predicted rating
-                cout << "Iterating feature " << j << endl;
+                ////cout << "Iterating feature " << j << endl;
                 predicted_rating = 0.0;
                 for (k = 0; k < NUM_COMPONENTS; k++) {
                     predicted_rating += user_features[(int)user * NUM_COMPONENTS + k] * movie_features[(int)movie * NUM_COMPONENTS + k];
@@ -112,18 +123,66 @@ void train(double ** training_pointers, double ** feature_pointers) {
                     //cout << predicted_rating << endl;
                 }
                 err = L_RATE * (rating - predicted_rating);
-                cout << rating << endl;
-                cout << predicted_rating << endl;
-                cout << err << endl;
+                ////cout << rating << endl;
+                ////cout << predicted_rating << endl;
+                ////cout << err << endl;
                 tmp_feature = user_features[(int)user * NUM_COMPONENTS + j];
                 user_features[(int)user * NUM_COMPONENTS + j] += err * movie_features[(int)movie * NUM_COMPONENTS + j];
                 movie_features[(int)movie * NUM_COMPONENTS + j] += err * tmp_feature;
             }
-            cout << (int)user * NUM_COMPONENTS + j << ", " << (int)movie * NUM_COMPONENTS + j << endl;
-            cout << "Feature " << j << " for " << (int)user << ", " << (int)movie << " done: " << user_features[(int)user * NUM_COMPONENTS + j] << ", " << movie_features[(int)movie * NUM_COMPONENTS + j] << endl;
+            ////cout << (int)user * NUM_COMPONENTS + j << ", " << (int)movie * NUM_COMPONENTS + j << endl;
+            ////cout << "Feature " << j << " for " << (int)user << ", " << (int)movie << " done: " << user_features[(int)user * NUM_COMPONENTS + j] << ", " << movie_features[(int)movie * NUM_COMPONENTS + j] << endl;
         }
     }
 
+}
+
+double determine(int movie, int user, double ** feature_pointers) {
+    double * user_features = feature_pointers[0];
+    double * movie_features = feature_pointers[1];
+
+    double sum = 1;
+
+    for (int f = 0; f < NUM_COMPONENTS; ++f) {
+        sum += movie_features[(int)movie * NUM_COMPONENTS + f] * user_features[(int)user * NUM_COMPONENTS + f];
+    }
+    if (sum < 1.0) sum = 1.0;
+    else if (sum > 5.0) sum = 5.0;
+    return sum;
+}
+
+void qual(double ** feature_pointers) {
+    cout << "making " << NUM_TESTING << " predictions." << endl;
+   
+    // open input file
+    ifstream inFile(QUAL_FILE);
+    if (!inFile.is_open()) { printf("can't open qual..."); exit(1); }
+ 
+    // open output file
+    ofstream outFile("out.txt", ofstream::out);
+    if (!outFile.is_open()) { printf("can't open output file..."); exit(1); }
+
+    // for every movie/user in qual, output a prediction.
+    int movie, user, time;
+
+    int i = 0;    
+    while (inFile.good() && i < NUM_TESTING) {
+        while (inFile >> user && inFile >> movie && inFile >> time) {
+            double p = determine((int)movie, (int)user, feature_pointers);
+            outFile << p << endl;
+            
+            // print progress every so often
+            if (i % 500 == 0) {
+                cout << '\r' << "(user, movie, predicted rating) = (" << user << ", " << movie << ", " << p << ")";
+            }
+
+            
+            ++i;
+        }
+    }
+    
+    inFile.close();
+    outFile.close();
 }
 
 int main() {
@@ -143,10 +202,9 @@ int main() {
     feature_pointers = initialize_feature_matrices();
     cout << "Feature matrices initialized." << endl;
     train(training_pointers, feature_pointers);
-    //cout << pointers[0] << pointers[1] << pointers[2] << endl;
-    //cout << pointers[0][0] << ' ' << pointers[1][0] << ' ' << pointers[2][0] << endl;
-    //delete[] training_users;
-    //delete[] training_movies;
-    //delete[] training_ratings;
-    //delete[] pointers;
+
+    qual(feature_pointers);
+
+    delete[] training_pointers;
+    delete[] feature_pointers;
 }
